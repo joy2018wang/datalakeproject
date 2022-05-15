@@ -66,7 +66,7 @@ def process_log_data(spark, input_data, output_data):
     log_data = input_data + \
         'log_data/2018/11/2018-11-12-events.json'
 
-# read log data file
+    # read log data file
     df = spark.read.json(log_data)
     
     # filter by actions for song plays

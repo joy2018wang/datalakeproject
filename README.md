@@ -1,14 +1,16 @@
-# Build a spakify data warehouse
+# Build a spakify data Lake
 As the business grows, spartify wants to get business insights from current
 users and their song plays, to expand market and customer retention rate. For
-example, if we can find out which artists are most popular, we can try to add
-more songs from the artist. For example, we can check what weekday and what
-hour the APP is mostly used.
+example, once we can find out which artists are most popular, we can try to add
+more songs from the artist. For example, we can check what week days and what
+hours the APP is mostly used.
   
 Sparkify originally stores songs and events in JSON files. To get business
 insights quickly and efficiently, this project builds a data warehouse on
 Redshift cluster. Following the STAR schema, there is a FACT table and several
 dimenions tables. 
+
+# The data lake is built using SPARK from data stored in AWS S3
 
 # Schema 
 
@@ -81,11 +83,10 @@ features of users which are often used in business insight queries.
 
 
 # ETL pipeline
-- Create Redshift cluster with proper setting and property
-- Create all the tables
-- Copy event data from LOG_DATA JSON files to staging_events
-- Copy song data from SONG_DATA JSON FILES to staging_songs
-- Insert into FACT and dimension tables from the two staging tables
+- Read song data from JSON files stored in AWS S3
+- Create tables from song data
+- Read log data from JSON files stored in AWS S3
+- Create tables from log data and from song data
 
 
 
@@ -94,22 +95,18 @@ features of users which are often used in business insight queries.
 ### In cmdline
     
     ```bash
-        python create_tables.py
         python etl.py
     ```
 
 ### In Notebook
     
         ```python
-        %run create_tables.py
         %run etl.py
         ```
 
 ## Files dictioinary
-- data/song_data  -- song information stored in .json files 
-- data/log_data   -- song play information stored in .json files
-- sql_querires.py -- queries for dropping and creating table, and COPY and inserting into tables
-- create_table.py -- Functions to run drop tables and create tables
+- S3 path/song_data  -- song information stored in .json files 
+- S3 path/log_data   -- song play information stored in .json files
 - etl.py          -- Copy/load and insert data to tables
-- test.ipynb      -- Check tables
-- runETL.ipynb -- Run create_table.py and etl.py; and check rendering of README.md
+- etl.ipynb      -- Check tables and test runs
+- runETL.ipynb -- Run etl.py; and check rendering of README.md
