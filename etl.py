@@ -1,3 +1,4 @@
+"""The module processes song and log JSON files loaded from S3 using SPARK."""
 import configparser
 from datetime import datetime
 import os
@@ -17,6 +18,7 @@ os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 
 def create_spark_session():
+    """Create a spark session."""
     spark = SparkSession \
         .builder \
         .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.0") \
@@ -25,6 +27,17 @@ def create_spark_session():
 
 
 def process_song_data(spark, input_data, output_data):
+    """
+    Process song data.
+
+    The function reads song JSON files from S3
+    and create songs and artists tables from the data.
+
+    Parameters:
+        spark: spark session
+        input_data: input data path
+        output_data: output data path
+    """
     song_data = input_data+'song_data/A/A/A/*.json'
     
     # read song data file
@@ -44,8 +57,8 @@ def process_song_data(spark, input_data, output_data):
     songs_table = spark.sql(qc_songs_table)
     
     # write songs table to parquet files
-    songs_table.write.mode("overwrite") \
-        .parquet(output_data + "joytempsongs_table.parquet")
+    songs_table.write.partitionBy('year', 'artist_id').mode("overwrite") \
+        .parquet(output_data + "songs/joytempsongs_table.parquet")
     
     # extract columns to create artists table
     qc_artists_table = """
@@ -59,14 +72,27 @@ def process_song_data(spark, input_data, output_data):
     
     # write users table to parquet files
     artists_table.write.mode("overwrite") \
-        .parquet(output_data + "joytempartists_table.parquet")
+        .parquet(output_data + "artists/joytempartists_table.parquet")
 
 def process_log_data(spark, input_data, output_data):
+    """
+    Process log data.
+
+    The function reads log JSON file from S3
+    and create users and time tables from log data.
+    songsplay also needs the artist_id and song_id
+    from song data.
+
+    Parameters:
+        spark: spark session
+        input_data: data path for input
+        output_data: data path for output
+    """
     # get filepath to log data file
     log_data = input_data + \
         'log_data/2018/11/2018-11-12-events.json'
 
-    # read log data file
+# read log data file
     df = spark.read.json(log_data)
     
     # filter by actions for song plays
@@ -86,7 +112,7 @@ def process_log_data(spark, input_data, output_data):
     
     # write users table to parquet files
     users_table.write.mode("overwrite") \
-        .parquet(output_data + "joytempusers_table.parquet")
+        .parquet(output_data + "users/joytempusers_table.parquet")
 
     # extract columns to create time table
     qs_ts = '''
@@ -109,14 +135,14 @@ def process_log_data(spark, input_data, output_data):
                                 dayofweek(col('start_time')))
 
     # write time table to parquet files partitioned by year and month
-    time_table.write.mode("overwrite") \
-        .parquet(output_data + "joytemptime_table.parquet")
+    time_table.write.partitionBy('year', 'month').mode("overwrite") \
+        .parquet(output_data + "time/joytemptime_table.parquet")
     
     # read in song data to use for songplays table
-    song_df = spark.read.parquet(output_data + "joytempsongs_table.parquet")
+    song_df = spark.read.parquet(output_data + "songs/joytempsongs_table.parquet")
     song_df.createOrReplaceTempView("tbsongs")
     
-    artist_df = spark.read.parquet(output_data + "joytempartists_table.parquet")
+    artist_df = spark.read.parquet(output_data + "artists/joytempartists_table.parquet")
     artist_df.createOrReplaceTempView("tbartists")
     
     # extract columns from joined song and log datasets to create songplays table 
@@ -148,10 +174,11 @@ def process_log_data(spark, input_data, output_data):
     songplays_table.withColumn('year',year('start_time')). \
          withColumn('month',month('start_time')).write. \
          partitionBy('year', 'month').mode('overwrite'). \
-         parquet(output_data+'joytempsongsplay.parquet')
+         parquet(output_data+'songsplay/joytempsongsplay.parquet')
 
 
 def main():
+    """Run process_song_data() and process_log_data()."""
     spark = create_spark_session()
     input_data = "s3a://udacity-dend/"
     output_data = ""
